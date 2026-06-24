@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Night Faceit</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg:      #0d0d0f;
+    --panel:   #16161a;
+    --panel2:  #1e1e24;
+    --panel3:  #252530;
+    --border:  #2a2a35;
+    --white:   #f0f0f5;
+    --gray:    #8888a0;
+    --dgray:   #44445a;
+    --accent:  #c8a8ff;
+    --green:   #48c78e;
+    --red:     #f44c7f;
+    --yellow:  #ffc400;
+    --blue:    #6488ff;
+    --moon:    #d0b8ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: -apple-system, 'SF Pro Display', 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: 80px;
+  }
+
+  /* ── NAV ── */
+  .nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 4px 8px;
+    gap: 4px;
+    cursor: pointer;
+    color: var(--dgray);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    transition: color .2s;
+    border: none; background: none;
+  }
+  .nav-btn.active { color: var(--moon); }
+  .nav-btn svg { width: 22px; height: 22px; }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 0 14px; }
+  .page.active { display: block; }
+
+  /* ── HEADER ── */
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 14px 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 50;
+    border-bottom: 1px solid var(--border);
+  }
+  .moon-logo {
+    width: 32px; height: 32px;
+    background: var(--panel2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border);
+  }
+  .moon-logo svg { width: 18px; height: 18px; }
+  .app-title { font-size: 17px; font-weight: 700; color: var(--white); letter-spacing: -0.3px; }
+  .app-title span { color: var(--moon); }
+  .header-stat {
+    margin-left: auto;
+    text-align: right;
+    font-size: 11px;
+    color: var(--gray);
+    line-height: 1.4;
+  }
+  .header-stat b { color: var(--white); font-size: 13px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title svg { width: 14px; height: 14px; color: var(--moon); }
+
+  /* ── PROFILE ── */
+  .profile-hero {
+    background: linear-gradient(135deg, var(--panel) 0%, #1a1a2e 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .profile-hero::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(200,168,255,.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .profile-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .avatar {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--moon);
+    background: var(--panel2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    overflow: hidden;
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .lvl-badge {
+    position: absolute;
+    bottom: -2px; right: -4px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1px 5px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--moon);
+  }
+  .profile-name { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .profile-id { font-size: 12px; color: var(--gray); margin-top: 2px; }
+  .profile-elo {
+    margin-left: auto;
+    text-align: right;
+  }
+  .elo-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--moon);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .elo-label { font-size: 11px; color: var(--gray); margin-top: 2px; }
+
+  /* Total ELO banner */
+  .total-elo-banner {
+    background: linear-gradient(135deg, rgba(208,184,255,.15) 0%, rgba(100,136,255,.1) 100%);
+    border: 1px solid rgba(208,184,255,.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .total-elo-label { font-size: 12px; color: var(--gray); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+  .total-elo-value { font-size: 24px; font-weight: 900; color: var(--moon); letter-spacing: -0.5px; }
+  .total-elo-sub { font-size: 10px; color: var(--dgray); margin-top: 1px; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-box {
+    background: var(--panel2);
+    border-radius: 10px;
+    padding: 12px 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .stat-val { font-size: 18px; font-weight: 700; color: var(--white); }
+  .stat-lbl { font-size: 10px; color: var(--gray); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+  .mode-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .mode-tab {
+    flex: 1;
+    padding: 9px 0;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--gray);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all .2s;
+  }
+  .mode-tab.active {
+    background: var(--moon);
+    color: #0d0d0f;
+    border-color: var(--moon);
+  }
+
+  /* ── LEADERBOARD ── */
+  .lb-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .lb-item:last-child { border-bottom: none; }
+  .lb-item:active { opacity: .7; }
+  .lb-rank {
+    width: 28px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--dgray);
+    flex-shrink: 0;
+  }
+  .lb-rank.gold   { color: #ffc400; }
+  .lb-rank.silver { color: #b0b0c8; }
+  .lb-rank.bronze { color: #cd7f32; }
+  .lb-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--panel3);
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .lb-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .lb-info { flex: 1; min-width: 0; }
+  .lb-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-sub  { font-size: 11px; color: var(--gray); margin-top: 2px; }
+  .lb-elo  { font-size: 15px; font-weight: 700; color: var(--moon); flex-shrink: 0; }
+
+  /* ── LOBBY ── */
+  .lobby-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+  .lobby-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .lobby-title { font-size: 18px; font-weight: 800; }
+  .lobby-count {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray);
+  }
+  .lobby-count span { color: var(--white); }
+  .progress-bar {
+    height: 6px;
+    background: var(--panel3);
+    border-radius: 3px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--moon), var(--accent));
+    border-radius: 3px;
+    transition: width .4s ease;
+  }
+
+  /* Player grid in lobby */
+  .lobby-players-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .lobby-player-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .slot-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--panel3);
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--moon);
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .slot-avatar.filled { border-color: var(--moon); }
+  .slot-avatar.empty-slot { border-style: dashed; border-color: var(--dgray); }
+  .slot-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .slot-name {
+    font-size: 9px;
+    color: var(--gray);
+    text-align: center;
+    max-width: 44px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .slot-name.me { color: var(--moon); }
+
+  /* Join/Leave buttons */
+  .lobby-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .btn {
+    padding: 13px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    letter-spacing: 0.2px;
+    width: 100%;
+  }
+  .btn:active { opacity: .8; transform: scale(.98); }
+  .btn-primary { background: var(--moon); color: #0d0d0f; }
+  .btn-danger  { background: transparent; color: var(--red); border: 1px solid var(--red); }
+  .btn-secondary { background: var(--panel2); color: var(--white); border: 1px solid var(--border); }
+
+  /* ── LOBBY CHAT ── */
+  .lobby-chat-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .chat-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .chat-header svg { width: 14px; height: 14px; color: var(--moon); }
+  .chat-online {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .chat-messages {
+    height: 220px;
+    overflow-y: auto;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+  }
+  .chat-messages::-webkit-scrollbar { width: 3px; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .chat-msg {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .chat-msg.mine { flex-direction: row-reverse; }
+  .chat-msg-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--panel3);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--moon);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .chat-msg-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .chat-msg-body { max-width: 72%; }
+  .chat-msg-name {
+    font-size: 10px;
+    color: var(--gray);
+    margin-bottom: 3px;
+    font-weight: 600;
+  }
+  .chat-msg.mine .chat-msg-name { text-align: right; color: var(--moon); }
+  .chat-bubble {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 12px 12px 12px 4px;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  .chat-msg.mine .chat-bubble {
+    background: rgba(208,184,255,.15);
+    border-color: rgba(208,184,255,.25);
+    border-radius: 12px 12px 4px 12px;
+  }
+  .chat-time {
+    font-size: 9px;
+    color: var(--dgray);
+    margin-top: 3px;
+  }
+  .chat-msg.mine .chat-time { text-align: right; }
+  .chat-empty {
+    color: var(--dgray);
+    font-size: 13px;
+    text-align: center;
+    padding: 20px 0;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--panel2);
+  }
+  .chat-input {
+    flex: 1;
+    background: var(--panel3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--white);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .chat-input:focus { border-color: var(--moon); }
+  .chat-input::placeholder { color: var(--dgray); }
+  .chat-send {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    border: none;
+    background: var(--moon);
+    color: #0d0d0f;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity .15s;
+  }
+  .chat-send:active { opacity: .8; }
+  .chat-send svg { width: 16px; height: 16px; }
+
+  /* ── TICKETS ── */
+  .ticket-item {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ticket-item:last-child { border-bottom: none; }
+  .ticket-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .ticket-num { font-size: 12px; color: var(--gray); }
+  .ticket-status {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .ticket-status.open   { background: rgba(72,199,142,.15); color: var(--green); }
+  .ticket-status.closed { background: rgba(90,90,100,.15);  color: var(--dgray); }
+  .ticket-text { font-size: 14px; color: var(--white); margin-bottom: 4px; }
+  .ticket-date { font-size: 11px; color: var(--dgray); }
+
+  .textarea-wrap { margin-bottom: 12px; }
+  textarea {
+    width: 100%;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--white);
+    font-family: inherit;
+    font-size: 15px;
+    padding: 13px;
+    resize: none;
+    min-height: 110px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  textarea:focus { border-color: var(--moon); }
+  textarea::placeholder { color: var(--dgray); }
+
+  /* ── LOADING / EMPTY ── */
+  .spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 50px;
+    color: var(--dgray);
+    font-size: 13px;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .spin {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--moon);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray);
+  }
+  .empty-state .icon { font-size: 36px; margin-bottom: 10px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 11px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    transition: all .3s;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── MISC ── */
+  .section-gap { height: 6px; }
+  .tag {
+    display: inline-block;
+    background: rgba(200,168,255,.12);
+    color: var(--moon);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .wl-row { display: flex; gap: 6px; margin-top: 6px; }
+  .w-chip { padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; background: rgba(72,199,142,.12); color: var(--green); }
+  .l-chip { padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; background: rgba(244,76,127,.12); color: var(--red); }
+
+  .not-registered {
+    background: rgba(200,168,255,.07);
+    border: 1px solid rgba(200,168,255,.2);
+    border-radius: 16px;
+    padding: 30px 20px;
+    text-align: center;
+    margin-top: 8px;
+  }
+  .not-registered .nr-icon { font-size: 40px; margin-bottom: 12px; }
+  .not-registered h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .not-registered p { font-size: 13px; color: var(--gray); line-height: 1.5; }
+  .not-registered code { background: var(--panel2); padding: 2px 6px; border-radius: 5px; font-size: 12px; color: var(--moon); }
+
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+  .stat-row {
+    display: flex;
+    gap: 8px;
+  }
+  .stat-row .stat-box { flex: 1; }
+
+  /* lobby empty slot visual */
+  .slot-empty-icon {
+    width: 18px; height: 18px;
+    opacity: 0.3;
+    color: var(--dgray);
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="moon-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--moon)">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </div>
+  <div>
+    <div class="app-title"><span>Night</span> Faceit</div>
+  </div>
+  <div class="header-stat" id="globalStat">
+    <div class="spin" style="width:16px;height:16px;border-width:1.5px;margin-left:auto"></div>
+  </div>
+</div>
+
+<!-- PAGES -->
+<div id="page-profile" class="page active">
+  <div style="height:14px"></div>
+  <div id="profileContent">
+    <div class="spinner"><div class="spin"></div>Загружаем профиль...</div>
+  </div>
+</div>
+
+<div id="page-top" class="page">
+  <div style="height:14px"></div>
+  <div class="mode-tabs" id="topTabs">
+    <div class="mode-tab active" onclick="setTopMode('total',this)">Общий</div>
+    <div class="mode-tab" onclick="setTopMode('5v5',this)">5v5</div>
+    <div class="mode-tab" onclick="setTopMode('2v2',this)">2v2</div>
+  </div>
+  <div class="card" style="padding:8px 16px">
+    <div id="topList"><div class="spinner"><div class="spin"></div>Загружаем топ...</div></div>
+  </div>
+</div>
+
+<div id="page-lobby" class="page">
+  <div style="height:14px"></div>
+  <div id="lobbyContent">
+    <div class="spinner"><div class="spin"></div>Загружаем лобби...</div>
+  </div>
+</div>
+
+<div id="page-ticket" class="page">
+  <div style="height:14px"></div>
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Написать в поддержку
+    </div>
+    <div class="textarea-wrap">
+      <textarea id="ticketText" placeholder="Опиши проблему или вопрос подробно..." maxlength="1000"></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="sendTicket()">Отправить тикет</button>
+  </div>
+  <div class="card" id="myTickets">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
+      Мои тикеты
+    </div>
+    <div id="ticketsList"><div class="spinner" style="padding:20px"><div class="spin"></div></div></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('profile',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+    Профиль
+  </button>
+  <button class="nav-btn" onclick="showPage('top',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+    Топ
+  </button>
+  <button class="nav-btn" onclick="showPage('lobby',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="7" width="20" height="15" rx="2"/>
+      <polyline points="17 2 12 7 7 2"/>
+    </svg>
+    Лобби
+  </button>
+  <button class="nav-btn" onclick="showPage('ticket',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+    Тикеты
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Telegram WebApp init ──
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#0d0d0f');
+  tg.setBackgroundColor('#0d0d0f');
+}
+
+const TG_USER = tg?.initDataUnsafe?.user || null;
+const BASE    = ''; // same origin
+
+// ── State ──
+let currentProfile = null;
+let topMode        = 'total';
+let lobbyInterval  = null;
+let chatInterval   = null;
+let myGameId       = null; // игровой ID (external_id)
+let myNickname     = null;
+let myUserId       = null; // только для аватарок, не показываем
+
+// Внутренние данные лобби (хранятся в памяти, в реальном приложении — на сервере)
+// Ключ: 'lobby_5v5' / 'lobby_2v2' — массив {gameId, nickname, userId, joinedAt}
+// Ключ: 'chat_messages' — массив {gameId, nickname, userId, text, ts}
+const lobbyState = {
+  '5v5': [], // [{gameId, nickname, userId, joinedAt}]
+  '2v2': []
+};
+const chatMessages = []; // [{gameId, nickname, userId, text, ts}]
+const MAX_CHAT = 100;
+
+// ── Navigation ──
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+
+  if (name === 'top')    loadTop();
+  if (name === 'lobby')  initLobby();
+  if (name === 'ticket') loadTickets();
+
+  if (name !== 'lobby') {
+    if (lobbyInterval) { clearInterval(lobbyInterval); lobbyInterval = null; }
+    if (chatInterval)  { clearInterval(chatInterval);  chatInterval  = null; }
+  }
+}
+
+// ── Toast ──
+function toast(msg, dur = 2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ── Level util ──
+function lvl(elo) {
+  if (elo >= 2001) return { n: 10, color: '#ffc400' };
+  if (elo >= 1751) return { n: 9,  color: '#f44c7f' };
+  if (elo >= 1531) return { n: 8,  color: '#f44c7f' };
+  if (elo >= 1351) return { n: 7,  color: '#ff8c42' };
+  if (elo >= 1201) return { n: 6,  color: '#ff8c42' };
+  if (elo >= 1051) return { n: 5,  color: '#ffc400' };
+  if (elo >= 901)  return { n: 4,  color: '#ffc400' };
+  if (elo >= 751)  return { n: 3,  color: '#48c78e' };
+  if (elo >= 501)  return { n: 2,  color: '#48c78e' };
+  return { n: 1, color: '#8888a0' };
+}
+
+function avatarHtml(userId, nickname, size = 38) {
+  const initial = (nickname || '?')[0].toUpperCase();
+  const avatarUrl = `https://t.me/i/userpic/320/${userId}.jpg`;
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:var(--panel3);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.38)}px;font-weight:700;color:var(--moon);overflow:hidden;flex-shrink:0">
+    <img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.style.display='none'" alt="${initial}">
+    ${initial}
+  </div>`;
+}
+
+// ── Calculates total ELO (5v5 + 2v2 combined weighted) ──
+function totalElo(p) {
+  const e5 = p.elo_5v5 || p.elo || 1000;
+  const e2 = p.elo_2v2 || p.elo || 1000;
+  // Weighted: 5v5 counts more (60%), 2v2 (40%)
+  return Math.round(e5 * 0.6 + e2 * 0.4);
+}
+
+// ── Global stats ──
+async function loadGlobalStats() {
+  try {
+    const r = await fetch(BASE + '/api/stats');
+    const d = await r.json();
+    document.getElementById('globalStat').innerHTML =
+      `<b>${d.total_players}</b> игроков<br>${d.total_matches} матчей`;
+  } catch {}
+}
+
+// ── PROFILE ──
+async function loadProfile() {
+  const el = document.getElementById('profileContent');
+  if (!TG_USER) {
+    el.innerHTML = `<div class="not-registered">
+      <div class="nr-icon">🌙</div>
+      <h3>Открой в Telegram</h3>
+      <p>Эта страница работает только внутри Telegram Mini App.</p>
+    </div>`;
+    return;
+  }
+
+  try {
+    const r  = await fetch(BASE + '/api/players');
+    const all = await r.json();
+    const p  = all.find(x => String(x.user_id) === String(TG_USER.id));
+    currentProfile = p || null;
+
+    if (p) {
+      myGameId   = p.external_id || null;
+      myNickname = p.nickname || null;
+      myUserId   = p.user_id || null;
+    }
+
+    if (!p) {
+      el.innerHTML = `<div class="not-registered">
+        <div class="nr-icon">🎮</div>
+        <h3>Вы не зарегистрированы</h3>
+        <p>Для регистрации напишите боту:<br><br>
+        <code>/reg GAME_ID Никнейм Платформа</code><br><br>
+        Пример: <code>/reg 6888 Londyyy pc</code></p>
+      </div>`;
+      return;
+    }
+
+    renderProfile(p, el);
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Ошибка загрузки профиля</p></div>`;
+  }
+}
+
+function renderProfile(p, el) {
+  const l     = lvl(p.elo);
+  const kd    = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : (p.total_kills > 0 ? p.total_kills.toFixed(2) : '0.00');
+  const wr    = (p.wins + p.losses) > 0 ? Math.round(p.wins / (p.wins + p.losses) * 100) : 0;
+  const games = p.wins + p.losses;
+  const tElo  = totalElo(p);
+  const tLvl  = lvl(tElo);
+
+  el.innerHTML = `
+  <div class="profile-hero">
+    <div class="profile-top">
+      <div class="avatar-wrap">
+        <div class="avatar">${avatarHtml(p.user_id, p.nickname, 64)}</div>
+        <div class="lvl-badge" style="color:${tLvl.color}">LVL ${tLvl.n}</div>
+      </div>
+      <div>
+        <div class="profile-name">${p.nickname}</div>
+        <div class="profile-id">🎮 ID ${p.external_id || '—'}</div>
+        <div class="wl-row">
+          <div class="w-chip">W ${p.wins}</div>
+          <div class="l-chip">L ${p.losses}</div>
+        </div>
+      </div>
+      <div class="profile-elo">
+        <div class="elo-num">${tElo}</div>
+        <div class="elo-label">Общий ELO</div>
+      </div>
+    </div>
+
+    <div class="total-elo-banner">
+      <div>
+        <div class="total-elo-label">⚡ Общий рейтинг</div>
+        <div class="total-elo-sub">5v5 × 60% + 2v2 × 40%</div>
+      </div>
+      <div style="text-align:right">
+        <div class="total-elo-value" style="color:${tLvl.color}">${tElo}</div>
+        <div class="total-elo-sub">LVL ${tLvl.n}</div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-val">${kd}</div><div class="stat-lbl">K/D</div></div>
+      <div class="stat-box"><div class="stat-val">${wr}%</div><div class="stat-lbl">Win Rate</div></div>
+      <div class="stat-box"><div class="stat-val">${games}</div><div class="stat-lbl">Игр</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+      Статистика 5v5
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val">${p.elo_5v5 || p.elo}</div><div class="stat-lbl">ELO</div></div>
+      <div class="stat-box"><div class="stat-val">${p.wins_5v5 || 0}</div><div class="stat-lbl">Победы</div></div>
+      <div class="stat-box"><div class="stat-val">${p.losses_5v5 || 0}</div><div class="stat-lbl">Поражения</div></div>
+    </div>
+    ${p.avg_5v5 ? `<div style="margin-top:10px;color:var(--gray);font-size:12px">AVG: <b style="color:var(--white)">${(p.avg_5v5||0).toFixed(1)}%</b></div>` : ''}
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Статистика 2v2
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val">${p.elo_2v2 || p.elo}</div><div class="stat-lbl">ELO</div></div>
+      <div class="stat-box"><div class="stat-val">${p.wins_2v2 || 0}</div><div class="stat-lbl">Победы</div></div>
+      <div class="stat-box"><div class="stat-val">${p.losses_2v2 || 0}</div><div class="stat-lbl">Поражения</div></div>
+    </div>
+  </div>
+  `;
+}
+
+// ── TOP ──
+let topData = null;
+function setTopMode(mode, btn) {
+  topMode = mode;
+  document.querySelectorAll('#topTabs .mode-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTop();
+}
+
+async function loadTop() {
+  const el = document.getElementById('topList');
+  if (!topData) {
+    el.innerHTML = `<div class="spinner"><div class="spin"></div></div>`;
+    try {
+      const r = await fetch(BASE + '/api/players');
+      topData = await r.json();
+    } catch {
+      el.innerHTML = `<div class="empty-state"><p>Ошибка загрузки</p></div>`;
+      return;
+    }
+  }
+  renderTop();
+}
+
+function getEloForMode(p, mode) {
+  if (mode === 'total') return totalElo(p);
+  return p[`elo_${mode}`] || p.elo || 1000;
+}
+
+function renderTop() {
+  const el = document.getElementById('topList');
+  if (!topData) return;
+
+  const sorted = [...topData]
+    .filter(p => !p.is_bot)
+    .sort((a, b) => getEloForMode(b, topMode) - getEloForMode(a, topMode))
+    .slice(0, 30);
+
+  if (!sorted.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">🏆</div><p>Нет игроков</p></div>`;
+    return;
+  }
+
+  const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+  const rankIcon  = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
+
+  el.innerHTML = sorted.map((p, i) => {
+    const e  = getEloForMode(p, topMode);
+    const w  = topMode === 'total' ? (p.wins || 0) : (p[`wins_${topMode}`] || 0);
+    const l  = topMode === 'total' ? (p.losses || 0) : (p[`losses_${topMode}`] || 0);
+    const lv = lvl(e);
+    return `<div class="lb-item" onclick="openPlayerProfile('${p.external_id}')">
+      <div class="lb-rank ${rankClass(i)}">${rankIcon(i)}</div>
+      ${avatarHtml(p.user_id, p.nickname, 38)}
+      <div class="lb-info">
+        <div class="lb-name">${p.nickname}</div>
+        <div class="lb-sub"><span style="color:${lv.color};font-weight:700">LVL ${lv.n}</span> · W${w} L${l}</div>
+      </div>
+      <div class="lb-elo">${e}</div>
+    </div>`;
+  }).join('');
+}
+
+async function openPlayerProfile(extId) {
+  if (!extId) return;
+  try {
+    const r = await fetch(`${BASE}/api/player/${extId}`);
+    const p = await r.json();
+    if (p.error) return;
+    const el = document.getElementById('profileContent');
+    renderProfile(p, el);
+    showPage('profile', document.querySelector('.nav-btn'));
+    document.querySelectorAll('.nav-btn').forEach((b,i) => { if(i===0) b.classList.add('active'); else b.classList.remove('active'); });
+  } catch {}
+}
+
+// ── LOBBY ──
+// Lobby state is stored in-memory (simulate server-side state for demo)
+// In production this would be stored in your backend API
+
+function initLobby() {
+  const el = document.getElementById('lobbyContent');
+  renderLobbyUI(el);
+  startLobbyPolling();
+}
+
+function startLobbyPolling() {
+  if (!lobbyInterval) {
+    lobbyInterval = setInterval(() => {
+      if (document.getElementById('page-lobby').classList.contains('active')) {
+        refreshLobbyPlayers();
+      }
+    }, 5000);
+  }
+  if (!chatInterval) {
+    chatInterval = setInterval(() => {
+      if (document.getElementById('page-lobby').classList.contains('active')) {
+        renderChatMessages();
+      }
+    }, 2000);
+  }
+}
+
+function renderLobbyUI(el) {
+  el.innerHTML = `
+    ${buildLobbyCard('5v5', 10)}
+    ${buildLobbyCard('2v2', 4)}
+    <div class="lobby-chat-section">
+      <div class="chat-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Чат лобби
+        <span class="chat-online" id="chatOnline">● онлайн</span>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-empty">Будь первым — напиши в чат!</div>
+      </div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chatInput" placeholder="Написать в лобби..." maxlength="200" onkeydown="if(event.key==='Enter')sendChatMsg()">
+        <button class="chat-send" onclick="sendChatMsg()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  `;
+  renderChatMessages();
+}
+
+function buildLobbyCard(mode, max) {
+  const queue = lobbyState[mode];
+  const filled = queue.length;
+  const pct = filled / max * 100;
+  const inQueue = myGameId && queue.some(p => p.gameId === myGameId);
+
+  // Build player grid
+  const slots = Array.from({length: max}, (_, i) => {
+    const player = queue[i];
+    if (player) {
+      const isMe = player.gameId === myGameId;
+      return `<div class="lobby-player-slot">
+        <div class="slot-avatar filled" title="${player.nickname}">
+          <img src="https://t.me/i/userpic/320/${player.userId}.jpg" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+          <span style="position:absolute">${player.nickname[0].toUpperCase()}</span>
+        </div>
+        <div class="slot-name ${isMe ? 'me' : ''}">${isMe ? '★ ' : ''}${player.nickname}</div>
+      </div>`;
+    } else {
+      return `<div class="lobby-player-slot">
+        <div class="slot-avatar empty-slot">
+          <svg class="slot-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <div class="slot-name" style="color:var(--dgray)">Пусто</div>
+      </div>`;
+    }
+  });
+
+  // Grid: 5 columns for 5v5, 2 columns for 2v2
+  const cols = mode === '5v5' ? 5 : 2;
+
+  return `<div class="lobby-card" id="lobbyCard_${mode}">
+    <div class="lobby-header">
+      <div class="lobby-title">🎮 Лобби ${mode}</div>
+      <div class="lobby-count"><span>${filled}</span>/${max}</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="lobby-players-grid" style="grid-template-columns: repeat(${cols}, 1fr); margin-bottom:14px">
+      ${slots.join('')}
+    </div>
+    <div class="lobby-actions">
+      ${inQueue
+        ? `<button class="btn btn-danger" onclick="leaveLobby('${mode}')">Покинуть очередь</button>`
+        : `<button class="btn btn-primary" onclick="joinLobby('${mode}')">Войти в лобби ${mode}</button>`
+      }
+    </div>
+  </div>`;
+}
+
+function refreshLobbyPlayers() {
+  ['5v5', '2v2'].forEach(mode => {
+    const max = mode === '5v5' ? 10 : 4;
+    const card = document.getElementById(`lobbyCard_${mode}`);
+    if (!card) return;
+    // Re-render just this card content
+    const tmp = document.createElement('div');
+    tmp.innerHTML = buildLobbyCard(mode, max);
+    card.replaceWith(tmp.firstElementChild);
+  });
+}
+
+function joinLobby(mode) {
+  if (!myGameId || !myNickname) {
+    toast('Нужно зарегистрироваться — напиши боту /reg');
+    return;
+  }
+  const queue = lobbyState[mode];
+  const max   = mode === '5v5' ? 10 : 4;
+  if (queue.some(p => p.gameId === myGameId)) {
+    toast('Ты уже в очереди!');
+    return;
+  }
+  if (queue.length >= max) {
+    toast('Лобби полное!');
+    return;
+  }
+  queue.push({ gameId: myGameId, nickname: myNickname, userId: myUserId, joinedAt: Date.now() });
+  toast(`✅ Ты в лобби ${mode}!`);
+  // Also post system message to chat
+  pushChatMsg(myNickname, myUserId, `вошёл в лобби ${mode} 🎮`, true);
+  refreshLobbyPlayers();
+}
+
+function leaveLobby(mode) {
+  if (!myGameId) return;
+  const queue = lobbyState[mode];
+  const idx = queue.findIndex(p => p.gameId === myGameId);
+  if (idx !== -1) {
+    queue.splice(idx, 1);
+    toast(`Ты покинул лобби ${mode}`);
+    pushChatMsg(myNickname, myUserId, `покинул лобби ${mode}`, true);
+    refreshLobbyPlayers();
+  }
+}
+
+// ── CHAT ──
+function pushChatMsg(nickname, userId, text, isSystem = false) {
+  chatMessages.push({ nickname, userId, text, ts: Date.now(), isSystem, gameId: myGameId });
+  if (chatMessages.length > MAX_CHAT) chatMessages.shift();
+  renderChatMessages();
+}
+
+function sendChatMsg() {
+  const input = document.getElementById('chatInput');
+  const text  = input?.value?.trim();
+  if (!text) return;
+  if (!myGameId || !myNickname) {
+    toast('Нужно зарегистрироваться чтобы писать в чат');
+    return;
+  }
+  pushChatMsg(myNickname, myUserId, text);
+  input.value = '';
+}
+
+function renderChatMessages() {
+  const el = document.getElementById('chatMessages');
+  if (!el) return;
+  if (!chatMessages.length) {
+    el.innerHTML = '<div class="chat-empty">Будь первым — напиши в чат!</div>';
+    return;
+  }
+  el.innerHTML = chatMessages.map(msg => {
+    const isMe = msg.gameId === myGameId && !msg.isSystem;
+    const timeStr = new Date(msg.ts).toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit'});
+    if (msg.isSystem) {
+      return `<div style="text-align:center;font-size:11px;color:var(--dgray);padding:4px 0">
+        <b style="color:var(--moon)">${msg.nickname}</b> ${msg.text}
+      </div>`;
+    }
+    return `<div class="chat-msg ${isMe ? 'mine' : ''}">
+      <div class="chat-msg-avatar">
+        <img src="https://t.me/i/userpic/320/${msg.userId}.jpg" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+        ${msg.nickname[0].toUpperCase()}
+      </div>
+      <div class="chat-msg-body">
+        <div class="chat-msg-name">${msg.nickname}</div>
+        <div class="chat-bubble">${escapeHtml(msg.text)}</div>
+        <div class="chat-time">${timeStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── TICKETS ──
+async function loadTickets() {
+  const el = document.getElementById('ticketsList');
+  el.innerHTML = `<div class="empty-state" style="padding:16px">
+    <div class="icon">🎫</div>
+    <p>История тикетов доступна<br>через бота командой <code style="background:var(--panel2);padding:2px 6px;border-radius:5px;color:var(--moon)">/ticket</code></p>
+  </div>`;
+}
+
+async function sendTicket() {
+  const text = document.getElementById('ticketText').value.trim();
+  if (!text || text.length < 5) { toast('Напиши подробнее (мин. 5 символов)'); return; }
+  if (!TG_USER) { toast('Открой в Telegram'); return; }
+
+  try {
+    if (tg && tg.sendData) {
+      tg.sendData(JSON.stringify({ action: 'ticket', text }));
+      toast('✅ Тикет отправлен!');
+      document.getElementById('ticketText').value = '';
+    } else {
+      toast('Используй /ticket в боте');
+    }
+  } catch {
+    toast('Ошибка отправки');
+  }
+}
+
+// ── INIT ──
+loadGlobalStats();
+loadProfile();
+</script>
+</body>
+</html>
