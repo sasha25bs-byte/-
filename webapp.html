@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Night Faceit</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg:      #0d0d0f;
+    --panel:   #16161a;
+    --panel2:  #1e1e24;
+    --panel3:  #252530;
+    --border:  #2a2a35;
+    --white:   #f0f0f5;
+    --gray:    #8888a0;
+    --dgray:   #44445a;
+    --accent:  #c8a8ff;
+    --green:   #48c78e;
+    --red:     #f44c7f;
+    --yellow:  #ffc400;
+    --blue:    #6488ff;
+    --moon:    #d0b8ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: -apple-system, 'SF Pro Display', 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: 80px;
+  }
+
+  /* ── NAV ── */
+  .nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 4px 8px;
+    gap: 4px;
+    cursor: pointer;
+    color: var(--dgray);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    transition: color .2s;
+    border: none; background: none;
+  }
+  .nav-btn.active { color: var(--moon); }
+  .nav-btn svg { width: 22px; height: 22px; }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 0 14px; }
+  .page.active { display: block; }
+
+  /* ── HEADER ── */
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 14px 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 50;
+    border-bottom: 1px solid var(--border);
+  }
+  .moon-logo {
+    width: 32px; height: 32px;
+    background: var(--panel2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border);
+  }
+  .moon-logo svg { width: 18px; height: 18px; }
+  .app-title { font-size: 17px; font-weight: 700; color: var(--white); letter-spacing: -0.3px; }
+  .app-title span { color: var(--moon); }
+  .header-stat {
+    margin-left: auto;
+    text-align: right;
+    font-size: 11px;
+    color: var(--gray);
+    line-height: 1.4;
+  }
+  .header-stat b { color: var(--white); font-size: 13px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title svg { width: 14px; height: 14px; color: var(--moon); }
+
+  /* ── PROFILE ── */
+  .profile-hero {
+    background: linear-gradient(135deg, var(--panel) 0%, #1a1a2e 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .profile-hero::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(200,168,255,.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .profile-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .avatar {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--moon);
+    background: var(--panel2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    overflow: hidden;
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .lvl-badge {
+    position: absolute;
+    bottom: -2px; right: -4px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1px 5px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--moon);
+  }
+  .profile-name { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .profile-id { font-size: 12px; color: var(--gray); margin-top: 2px; }
+  .profile-elo {
+    margin-left: auto;
+    text-align: right;
+  }
+  .elo-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--moon);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .elo-label { font-size: 11px; color: var(--gray); margin-top: 2px; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-box {
+    background: var(--panel2);
+    border-radius: 10px;
+    padding: 12px 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .stat-val { font-size: 18px; font-weight: 700; color: var(--white); }
+  .stat-lbl { font-size: 10px; color: var(--gray); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+  .mode-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .mode-tab {
+    flex: 1;
+    padding: 9px 0;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--gray);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all .2s;
+  }
+  .mode-tab.active {
+    background: var(--moon);
+    color: #0d0d0f;
+    border-color: var(--moon);
+  }
+
+  /* ── LEADERBOARD ── */
+  .lb-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .lb-item:last-child { border-bottom: none; }
+  .lb-item:active { opacity: .7; }
+  .lb-rank {
+    width: 28px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--dgray);
+    flex-shrink: 0;
+  }
+  .lb-rank.gold   { color: #ffc400; }
+  .lb-rank.silver { color: #b0b0c8; }
+  .lb-rank.bronze { color: #cd7f32; }
+  .lb-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--panel3);
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .lb-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .lb-info { flex: 1; min-width: 0; }
+  .lb-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-sub  { font-size: 11px; color: var(--gray); margin-top: 2px; }
+  .lb-elo  { font-size: 15px; font-weight: 700; color: var(--moon); flex-shrink: 0; }
+
+  /* ── LOBBY ── */
+  .lobby-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+  .lobby-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .lobby-title { font-size: 18px; font-weight: 800; }
+  .lobby-count {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray);
+  }
+  .lobby-count span { color: var(--white); }
+  .progress-bar {
+    height: 6px;
+    background: var(--panel3);
+    border-radius: 3px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--moon), var(--accent));
+    border-radius: 3px;
+    transition: width .4s ease;
+  }
+  .lobby-players {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+    min-height: 44px;
+  }
+  .lobby-player-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 10px 5px 5px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .chip-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--panel3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .chip-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .lobby-empty {
+    color: var(--dgray);
+    font-size: 13px;
+    text-align: center;
+    padding: 10px 0;
+    width: 100%;
+  }
+  .btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    letter-spacing: 0.2px;
+  }
+  .btn:active { opacity: .8; transform: scale(.98); }
+  .btn-primary { background: var(--moon); color: #0d0d0f; }
+  .btn-danger  { background: transparent; color: var(--red); border: 1px solid var(--red); margin-top: 8px; }
+  .btn-secondary { background: var(--panel2); color: var(--white); border: 1px solid var(--border); }
+
+  /* ── TICKETS ── */
+  .ticket-item {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ticket-item:last-child { border-bottom: none; }
+  .ticket-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .ticket-num { font-size: 12px; color: var(--gray); }
+  .ticket-status {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .ticket-status.open   { background: rgba(72,199,142,.15); color: var(--green); }
+  .ticket-status.closed { background: rgba(90,90,100,.15);  color: var(--dgray); }
+  .ticket-text { font-size: 14px; color: var(--white); margin-bottom: 4px; }
+  .ticket-date { font-size: 11px; color: var(--dgray); }
+
+  .textarea-wrap { margin-bottom: 12px; }
+  textarea {
+    width: 100%;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--white);
+    font-family: inherit;
+    font-size: 15px;
+    padding: 13px;
+    resize: none;
+    min-height: 110px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  textarea:focus { border-color: var(--moon); }
+  textarea::placeholder { color: var(--dgray); }
+
+  /* ── LOADING / EMPTY ── */
+  .spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 50px;
+    color: var(--dgray);
+    font-size: 13px;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .spin {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--moon);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray);
+  }
+  .empty-state .icon { font-size: 36px; margin-bottom: 10px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 11px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    transition: all .3s;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── MISC ── */
+  .section-gap { height: 6px; }
+  .tag {
+    display: inline-block;
+    background: rgba(200,168,255,.12);
+    color: var(--moon);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .wl-row { display: flex; gap: 6px; margin-top: 6px; }
+  .w-chip { padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; background: rgba(72,199,142,.12); color: var(--green); }
+  .l-chip { padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; background: rgba(244,76,127,.12); color: var(--red); }
+
+  .not-registered {
+    background: rgba(200,168,255,.07);
+    border: 1px solid rgba(200,168,255,.2);
+    border-radius: 16px;
+    padding: 30px 20px;
+    text-align: center;
+    margin-top: 8px;
+  }
+  .not-registered .nr-icon { font-size: 40px; margin-bottom: 12px; }
+  .not-registered h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .not-registered p { font-size: 13px; color: var(--gray); line-height: 1.5; }
+  .not-registered code { background: var(--panel2); padding: 2px 6px; border-radius: 5px; font-size: 12px; color: var(--moon); }
+
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+  .kd-ring {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    border: 3px solid var(--panel3);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .kd-val { font-size: 17px; font-weight: 800; line-height: 1; }
+  .kd-sub { font-size: 9px; color: var(--gray); margin-top: 2px; }
+
+  .stat-row {
+    display: flex;
+    gap: 8px;
+  }
+  .stat-row .stat-box { flex: 1; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="moon-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--moon)">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </div>
+  <div>
+    <div class="app-title"><span>Night</span> Faceit</div>
+  </div>
+  <div class="header-stat" id="globalStat">
+    <div class="spin" style="width:16px;height:16px;border-width:1.5px;margin-left:auto"></div>
+  </div>
+</div>
+
+<!-- PAGES -->
+<div id="page-profile" class="page active">
+  <div style="height:14px"></div>
+  <div id="profileContent">
+    <div class="spinner"><div class="spin"></div>Загружаем профиль...</div>
+  </div>
+</div>
+
+<div id="page-top" class="page">
+  <div style="height:14px"></div>
+  <div class="mode-tabs" id="topTabs">
+    <div class="mode-tab active" onclick="setTopMode('5v5',this)">5v5</div>
+    <div class="mode-tab" onclick="setTopMode('2v2',this)">2v2</div>
+  </div>
+  <div class="card" style="padding:8px 16px">
+    <div id="topList"><div class="spinner"><div class="spin"></div>Загружаем топ...</div></div>
+  </div>
+</div>
+
+<div id="page-lobby" class="page">
+  <div style="height:14px"></div>
+  <div id="lobbyContent">
+    <div class="spinner"><div class="spin"></div>Загружаем лобби...</div>
+  </div>
+</div>
+
+<div id="page-ticket" class="page">
+  <div style="height:14px"></div>
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Написать в поддержку
+    </div>
+    <div class="textarea-wrap">
+      <textarea id="ticketText" placeholder="Опиши проблему или вопрос подробно..." maxlength="1000"></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="sendTicket()">Отправить тикет</button>
+  </div>
+  <div class="card" id="myTickets">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
+      Мои тикеты
+    </div>
+    <div id="ticketsList"><div class="spinner" style="padding:20px"><div class="spin"></div></div></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('profile',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+    Профиль
+  </button>
+  <button class="nav-btn" onclick="showPage('top',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+    Топ
+  </button>
+  <button class="nav-btn" onclick="showPage('lobby',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="7" width="20" height="15" rx="2"/>
+      <polyline points="17 2 12 7 7 2"/>
+    </svg>
+    Лобби
+  </button>
+  <button class="nav-btn" onclick="showPage('ticket',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+    Тикеты
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Telegram WebApp init ──
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#0d0d0f');
+  tg.setBackgroundColor('#0d0d0f');
+}
+
+const TG_USER = tg?.initDataUnsafe?.user || null;
+const BASE    = ''; // same origin
+
+// ── State ──
+let currentProfile = null;
+let topMode        = '5v5';
+let lobbyInterval  = null;
+
+// ── Navigation ──
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+
+  if (name === 'top')    loadTop();
+  if (name === 'lobby')  loadLobby();
+  if (name === 'ticket') loadTickets();
+  if (name !== 'lobby' && lobbyInterval) { clearInterval(lobbyInterval); lobbyInterval = null; }
+}
+
+// ── Toast ──
+function toast(msg, dur = 2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ── Level util ──
+function lvl(elo) {
+  if (elo >= 2001) return { n: 10, color: '#ffc400' };
+  if (elo >= 1751) return { n: 9,  color: '#f44c7f' };
+  if (elo >= 1531) return { n: 8,  color: '#f44c7f' };
+  if (elo >= 1351) return { n: 7,  color: '#ff8c42' };
+  if (elo >= 1201) return { n: 6,  color: '#ff8c42' };
+  if (elo >= 1051) return { n: 5,  color: '#ffc400' };
+  if (elo >= 901)  return { n: 4,  color: '#ffc400' };
+  if (elo >= 751)  return { n: 3,  color: '#48c78e' };
+  if (elo >= 501)  return { n: 2,  color: '#48c78e' };
+  return { n: 1, color: '#8888a0' };
+}
+
+function avatarUrl(userId) {
+  return `https://t.me/i/userpic/320/${userId}.jpg`;
+}
+
+function avatarHtml(userId, nickname, size = 38) {
+  const initial = (nickname || '?')[0].toUpperCase();
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:var(--panel3);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.38)}px;font-weight:700;color:var(--moon);overflow:hidden;flex-shrink:0">
+    <img src="${avatarUrl(userId)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.style.display='none'" alt="${initial}">
+    ${initial}
+  </div>`;
+}
+
+// ── Global stats ──
+async function loadGlobalStats() {
+  try {
+    const r = await fetch(BASE + '/api/stats');
+    const d = await r.json();
+    document.getElementById('globalStat').innerHTML =
+      `<b>${d.total_players}</b> игроков<br>${d.total_matches} матчей`;
+  } catch {}
+}
+
+// ── PROFILE ──
+async function loadProfile() {
+  const el = document.getElementById('profileContent');
+  if (!TG_USER) {
+    el.innerHTML = `<div class="not-registered">
+      <div class="nr-icon">🌙</div>
+      <h3>Открой в Telegram</h3>
+      <p>Эта страница работает только внутри Telegram Mini App.</p>
+    </div>`;
+    return;
+  }
+
+  try {
+    // Ищем игрока через /api/players по user_id
+    const r  = await fetch(BASE + '/api/players');
+    const all = await r.json();
+    const p  = all.find(x => String(x.user_id) === String(TG_USER.id));
+    currentProfile = p || null;
+
+    if (!p) {
+      el.innerHTML = `<div class="not-registered">
+        <div class="nr-icon">🎮</div>
+        <h3>Вы не зарегистрированы</h3>
+        <p>Для регистрации напишите боту:<br><br>
+        <code>/reg GAME_ID Никнейм Платформа</code><br><br>
+        Пример: <code>/reg 6888 Londyyy pc</code></p>
+      </div>`;
+      return;
+    }
+
+    renderProfile(p, el);
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Ошибка загрузки профиля</p></div>`;
+  }
+}
+
+function renderProfile(p, el) {
+  const l     = lvl(p.elo);
+  const kd    = p.total_deaths > 0 ? (p.total_kills / p.total_deaths).toFixed(2) : (p.total_kills > 0 ? p.total_kills.toFixed(2) : '0.00');
+  const wr    = (p.wins + p.losses) > 0 ? Math.round(p.wins / (p.wins + p.losses) * 100) : 0;
+  const games = p.wins + p.losses;
+
+  el.innerHTML = `
+  <div class="profile-hero">
+    <div class="profile-top">
+      <div class="avatar-wrap">
+        <div class="avatar">${avatarHtml(p.user_id, p.nickname, 64)}</div>
+        <div class="lvl-badge" style="color:${l.color}">LVL ${l.n}</div>
+      </div>
+      <div>
+        <div class="profile-name">${p.nickname}</div>
+        <div class="profile-id"># ${p.external_id || '—'}  ·  ID ${p.user_id}</div>
+        <div class="wl-row">
+          <div class="w-chip">W ${p.wins}</div>
+          <div class="l-chip">L ${p.losses}</div>
+        </div>
+      </div>
+      <div class="profile-elo">
+        <div class="elo-num">${p.elo}</div>
+        <div class="elo-label">ELO</div>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-val">${kd}</div><div class="stat-lbl">K/D</div></div>
+      <div class="stat-box"><div class="stat-val">${wr}%</div><div class="stat-lbl">Win Rate</div></div>
+      <div class="stat-box"><div class="stat-val">${games}</div><div class="stat-lbl">Игр</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+      Статистика 5v5
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val">${p.elo_5v5 || p.elo}</div><div class="stat-lbl">ELO</div></div>
+      <div class="stat-box"><div class="stat-val">${p.wins_5v5 || 0}</div><div class="stat-lbl">Победы</div></div>
+      <div class="stat-box"><div class="stat-val">${p.losses_5v5 || 0}</div><div class="stat-lbl">Поражения</div></div>
+    </div>
+    ${p.avg_5v5 ? `<div style="margin-top:10px;color:var(--gray);font-size:12px">AVG: <b style="color:var(--white)">${(p.avg_5v5||0).toFixed(1)}%</b></div>` : ''}
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Статистика 2v2
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val">${p.elo_2v2 || p.elo}</div><div class="stat-lbl">ELO</div></div>
+      <div class="stat-box"><div class="stat-val">${p.wins_2v2 || 0}</div><div class="stat-lbl">Победы</div></div>
+      <div class="stat-box"><div class="stat-val">${p.losses_2v2 || 0}</div><div class="stat-lbl">Поражения</div></div>
+    </div>
+  </div>
+  `;
+}
+
+// ── TOP ──
+let topData = null;
+function setTopMode(mode, btn) {
+  topMode = mode;
+  document.querySelectorAll('#topTabs .mode-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTop();
+}
+
+async function loadTop() {
+  const el = document.getElementById('topList');
+  if (!topData) {
+    el.innerHTML = `<div class="spinner"><div class="spin"></div></div>`;
+    try {
+      const r = await fetch(BASE + '/api/players');
+      topData = await r.json();
+    } catch {
+      el.innerHTML = `<div class="empty-state"><p>Ошибка загрузки</p></div>`;
+      return;
+    }
+  }
+  renderTop();
+}
+
+function renderTop() {
+  const el = document.getElementById('topList');
+  if (!topData) return;
+
+  const sorted = [...topData]
+    .filter(p => !p.is_bot)
+    .sort((a, b) => (b[`elo_${topMode}`] || b.elo) - (a[`elo_${topMode}`] || a.elo))
+    .slice(0, 30);
+
+  if (!sorted.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">🏆</div><p>Нет игроков</p></div>`;
+    return;
+  }
+
+  const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+  const rankIcon  = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
+
+  el.innerHTML = sorted.map((p, i) => {
+    const e = p[`elo_${topMode}`] || p.elo;
+    const w = p[`wins_${topMode}`] || 0;
+    const l = p[`losses_${topMode}`] || 0;
+    const lv = lvl(e);
+    return `<div class="lb-item" onclick="openPlayerProfile('${p.external_id}')">
+      <div class="lb-rank ${rankClass(i)}">${rankIcon(i)}</div>
+      ${avatarHtml(p.user_id, p.nickname, 38)}
+      <div class="lb-info">
+        <div class="lb-name">${p.nickname}</div>
+        <div class="lb-sub"><span style="color:${lv.color};font-weight:700">LVL ${lv.n}</span> · W${w} L${l}</div>
+      </div>
+      <div class="lb-elo">${e}</div>
+    </div>`;
+  }).join('');
+}
+
+async function openPlayerProfile(extId) {
+  try {
+    const r = await fetch(`${BASE}/api/player/${extId}`);
+    const p = await r.json();
+    if (p.error) return;
+    // Show profile of another player
+    const el = document.getElementById('profileContent');
+    renderProfile(p, el);
+    showPage('profile', document.querySelector('.nav-btn'));
+    document.querySelectorAll('.nav-btn').forEach((b,i) => { if(i===0) b.classList.add('active'); else b.classList.remove('active'); });
+  } catch {}
+}
+
+// ── LOBBY ──
+let lobbyData = null;
+
+async function loadLobby() {
+  const el = document.getElementById('lobbyContent');
+  try {
+    const r = await fetch(BASE + '/api/players');
+    const all = await r.json();
+    // We get queue info from stats endpoint isn't available, so we show lobby UI based on what we have
+    renderLobby(el, all);
+  } catch {
+    el.innerHTML = `<div class="empty-state"><p>Ошибка загрузки</p></div>`;
+  }
+  if (!lobbyInterval) {
+    lobbyInterval = setInterval(async () => {
+      if (document.getElementById('page-lobby').classList.contains('active')) loadLobby();
+    }, 8000);
+  }
+}
+
+function renderLobby(el, allPlayers) {
+  const myId = TG_USER?.id;
+  el.innerHTML = `
+    ${lobbyBlock('5v5', 10, [], myId, allPlayers)}
+    ${lobbyBlock('2v2', 4,  [], myId, allPlayers)}
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px">
+      <div class="card-title" style="margin-bottom:10px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--moon)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Как вступить в очередь
+      </div>
+      <p style="font-size:13px;color:var(--gray);line-height:1.6">
+        Очередь управляется через бота в Telegram.<br>
+        Нажми <b style="color:var(--white)">/5v5</b> или <b style="color:var(--white)">/2v2</b> в чате — затем кнопку «Присоединиться».
+      </p>
+    </div>
+  `;
+}
+
+function lobbyBlock(mode, max, queue, myId, allPlayers) {
+  const filled = queue.length;
+  const pct    = filled / max * 100;
+  const inQueue = queue.includes(myId);
+
+  const chips = filled > 0
+    ? queue.map(uid => {
+        const p = allPlayers.find(x => x.user_id == uid);
+        const name = p?.nickname || 'Игрок';
+        return `<div class="lobby-player-chip">${avatarHtml(uid, name, 28)}<span>${name}</span></div>`;
+      }).join('')
+    : `<div class="lobby-empty">Очередь пуста — вступи первым!</div>`;
+
+  return `<div class="lobby-card">
+    <div class="lobby-header">
+      <div class="lobby-title">🎮 Лобби ${mode}</div>
+      <div class="lobby-count"><span>${filled}</span>/${max}</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="lobby-players">${chips}</div>
+    <button class="btn btn-primary" onclick="joinLobby('${mode}')">Перейти к очереди ${mode}</button>
+  </div>`;
+}
+
+function joinLobby(mode) {
+  if (tg) {
+    tg.close();
+  } else {
+    toast(`Перейди в бот и нажми /${mode}`);
+  }
+}
+
+// ── TICKETS ──
+async function loadTickets() {
+  const el = document.getElementById('ticketsList');
+  // Tickets API not exposed publicly — show placeholder
+  el.innerHTML = `<div class="empty-state" style="padding:16px">
+    <div class="icon">🎫</div>
+    <p>История тикетов доступна<br>через бота командой <code style="background:var(--panel2);padding:2px 6px;border-radius:5px;color:var(--moon)">/ticket</code></p>
+  </div>`;
+}
+
+async function sendTicket() {
+  const text = document.getElementById('ticketText').value.trim();
+  if (!text || text.length < 5) { toast('Напиши подробнее (мин. 5 символов)'); return; }
+  if (!TG_USER) { toast('Открой в Telegram'); return; }
+
+  // Send via Telegram sendData so bot can handle it
+  try {
+    if (tg && tg.sendData) {
+      tg.sendData(JSON.stringify({ action: 'ticket', text }));
+      toast('✅ Тикет отправлен!');
+      document.getElementById('ticketText').value = '';
+    } else {
+      toast('Используй /ticket в боте');
+    }
+  } catch {
+    toast('Ошибка отправки');
+  }
+}
+
+// ── INIT ──
+loadGlobalStats();
+loadProfile();
+</script>
+</body>
+</html>
