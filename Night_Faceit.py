@@ -60,28 +60,6 @@ MODERATOR_IDS: list = _parse_id_list(_os.environ.get("MODERATOR_IDS", ""))
 # Переменная окружения YOUTUBER_IDS (через запятую).
 YOUTUBER_IDS: list = _parse_id_list(_os.environ.get("YOUTUBER_IDS", ""))
 
-# ── БЕЙДЖИ ВЕРИФИКАЦИИ ────────────────────────────
-# Анимированный бейдж рендерится через кастомный emoji Telegram (тег <tg-emoji>).
-# Как получить emoji-id для СВОЕГО набора:
-#   1) Создай набор кастомных emoji через @Stickers → "Custom emoji pack".
-#   2) Отправь любой emoji из набора самому себе и перешли его боту @userinfobot
-#      либо используй getStickerSet в Bot API — в ответе будет custom_emoji_id.
-#   3) Впиши id ниже (или задай через переменные окружения на Railway).
-# Если id не задан — бот покажет обычный (не анимированный) emoji-фолбэк,
-# ничего не сломается.
-ADMIN_BADGE_EMOJI_ID    = _os.environ.get("ADMIN_BADGE_EMOJI_ID", "")     # напр. "5368324170671202286"
-YOUTUBER_BADGE_EMOJI_ID = _os.environ.get("YOUTUBER_BADGE_EMOJI_ID", "")  # напр. "5368324170671202287"
-
-ADMIN_BADGE_FALLBACK    = "🔵✅"
-YOUTUBER_BADGE_FALLBACK = "🟣✅"
-
-
-def _verified_badge(emoji_id: str, fallback: str) -> str:
-    """Возвращает HTML для анимированного бейджа (кастомный emoji), либо обычный emoji, если id не настроен."""
-    if emoji_id:
-        return f'<tg-emoji emoji-id="{emoji_id}">{fallback}</tg-emoji>'
-    return fallback
-
 WEBAPP_URL       = _os.environ.get("WEBAPP_URL", "")  # URL сайта на Railway
 DATA_FILE        = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "faceit_db.json")
 STORAGE_CHAT_ID  = int(_os.environ.get("STORAGE_CHAT_ID", "7979653269"))  # ID канала для хранения БД
@@ -106,14 +84,6 @@ def is_moderator(uid: int) -> bool:
 
 def is_youtuber(uid: int) -> bool:
     return uid in YOUTUBER_IDS
-
-def badge_for(uid: int) -> str:
-    """Верификационный бейдж рядом с ником: приоритет у админ-бейджа над ютубер-бейджем."""
-    if is_admin(uid):
-        return " " + _verified_badge(ADMIN_BADGE_EMOJI_ID, ADMIN_BADGE_FALLBACK)
-    if is_youtuber(uid):
-        return " " + _verified_badge(YOUTUBER_BADGE_EMOJI_ID, YOUTUBER_BADGE_FALLBACK)
-    return ""
 
 # ── БЕСЕДА / СЕЗОН ────────────────────────────────
 BESEDA_LINK     = "https://t.me/faceitggvp"   # ссылка на беседу (там играются матчи)
@@ -630,7 +600,7 @@ def lobby_text(mode: str, queue: List[int]) -> str:
             p   = get_player(uid)
             num = medals[i - 1] if i <= 3 else f"<b>{i}.</b>"
             lines.append(
-                f"│ {num} {p.lvl_icon()} {p.tg_link()}{badge_for(uid)}\n"
+                f"│ {num} {p.lvl_icon()} {p.tg_link()}\n"
                 f"│  <code>[{p.external_id or '???'}]</code> · <b>{p.elo}</b> ELO"
             )
         lines.append("└──────────────")
@@ -1404,9 +1374,13 @@ def _progress_bar(pct: int, length: int = 10) -> str:
     return "▰" * filled + "▱" * (length - filled)
 
 
-def build_stats_text(target: int, looking_at_self: bool) -> tuple:
+def build_stats_text(target: int, looking_at_self: bool, private_chat: bool = True) -> tuple:
     """Возвращает (text, keyboard) для профиля игрока target. Переиспользуется
-    и командой /stats (в беседе), и кнопкой «📊 Мой профиль» в ЛС."""
+    и командой /stats (в беседе), и кнопкой «📊 Мой профиль» в ЛС.
+
+    private_chat: web_app-кнопки Telegram разрешает ТОЛЬКО в личных чатах с ботом —
+    в группах это вызывает ошибку BUTTON_TYPE_INVALID. Поэтому кнопку добавляем
+    только если сейчас действительно ЛС."""
     db = load_db()
     s  = str(target)
 
@@ -1468,7 +1442,7 @@ def build_stats_text(target: int, looking_at_self: bool) -> tuple:
     next_line = f"до LVL {level+1}: <b>{to_next}</b> ELO" if to_next is not None else "🏆 максимальный уровень"
 
     text = (
-        f"✦ {p.tg_link()}{badge_for(target)} ✦\n"
+        f"✦ {p.tg_link()} ✦\n"
         f"🆔 <code>{p.external_id or 'не указан'}</code>   {platform_label}\n"
         f"{role_line}"
         f"━━━━━━━━━━━━━━\n"
@@ -1483,7 +1457,7 @@ def build_stats_text(target: int, looking_at_self: bool) -> tuple:
     )
 
     kb = None
-    if looking_at_self and WEBAPP_URL:
+    if looking_at_self and WEBAPP_URL and private_chat:
         kb = InlineKeyboardMarkup([[InlineKeyboardButton(
             "📊 Подробная статистика и история матчей",
             web_app=WebAppInfo(url=WEBAPP_URL)
@@ -1512,7 +1486,8 @@ async def stats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("Формат: /stats [user_id]"); return
 
         looking_at_self = (target == uid)
-        text, kb = build_stats_text(target, looking_at_self)
+        private_chat = (update.effective_chat.type == "private")
+        text, kb = build_stats_text(target, looking_at_self, private_chat)
         await update.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
     except Exception as e:
         import traceback
@@ -1697,15 +1672,15 @@ def build_admins_text(uid: int) -> str:
         return f'<a href="tg://user?id={user_id}">{nick}</a>'
 
     staff_lines = []
-    staff_lines.append(f"· {_get_link(CREATOR_ID)}{badge_for(CREATOR_ID)} <i>(создатель)</i>")
+    staff_lines.append(f"· {_get_link(CREATOR_ID)} <i>(создатель)</i>")
     for aid in ADMIN_IDS:
         if aid != CREATOR_ID:
-            staff_lines.append(f"· {_get_link(aid)}{badge_for(aid)} <i>(админ)</i>")
+            staff_lines.append(f"· {_get_link(aid)} <i>(админ)</i>")
     for mid in MODERATOR_IDS:
-        staff_lines.append(f"· {_get_link(mid)}{badge_for(mid)} <i>(модер)</i>")
+        staff_lines.append(f"· {_get_link(mid)} <i>(модер)</i>")
     for yid in YOUTUBER_IDS:
         if yid not in ADMIN_IDS and yid not in MODERATOR_IDS:
-            staff_lines.append(f"· {_get_link(yid)}{badge_for(yid)} <i>(ютубер)</i>")
+            staff_lines.append(f"· {_get_link(yid)} <i>(ютубер)</i>")
 
     staff_block = "\n".join(staff_lines) if staff_lines else "—"
 
@@ -2305,7 +2280,8 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── МОЙ ПРОФИЛЬ ───────────────────────────────────────────────────────────
     if cb == "cmd_stats":
         await q.answer()
-        text, kb = build_stats_text(uid, True)
+        private_chat = bool(q.message and q.message.chat.type == "private")
+        text, kb = build_stats_text(uid, True, private_chat)
         rows = list(kb.inline_keyboard) if kb else []
         rows.append([InlineKeyboardButton("⬅️ В главное меню", callback_data="cmd_menu")])
         await _menu_edit(q, text, InlineKeyboardMarkup(rows))
@@ -2548,6 +2524,40 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             queue.remove(uid)
             await q.answer(f"❌ Вы вышли из очереди {mode.upper()}")
+
+            db[key] = queue
+            save_db(db)
+
+            # ── Выход из лобби в ЛС — сразу кидаем в главное меню ──
+            if q.message and q.message.chat.type == "private":
+                s    = str(uid)
+                reg  = bool(s in db["players"] and db["players"][s].get("external_id"))
+                name = q.from_user.first_name or "игрок"
+                menu_text = (
+                    f"👋 <b>Привет, {name}!</b>\n\n"
+                    f"🌙 <b>Night Faceit</b> — твоя персональная лига\n\n"
+                    f"{'✅ Ты зарегистрирован' if reg else '❌ Ты не зарегистрирован'}\n\n"
+                    f"👇 Выбери действие:"
+                )
+                try:
+                    await q.edit_message_text(
+                        menu_text,
+                        reply_markup=main_menu_kb(uid, reg),
+                        parse_mode=ParseMode.HTML
+                    )
+                except Exception:
+                    pass
+                return
+
+            try:
+                await q.edit_message_text(
+                    lobby_text(mode, queue),
+                    reply_markup=lobby_kb(mode, uid, queue),
+                    parse_mode=ParseMode.HTML
+                )
+            except Exception:
+                pass
+            return
 
         db[key] = queue
         save_db(db)
